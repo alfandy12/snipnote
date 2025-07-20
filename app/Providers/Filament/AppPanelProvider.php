@@ -90,6 +90,9 @@ class AppPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             //  ->databaseTransaction()
+            ->databaseNotifications()
+            // not recomended, cuz polling query 30s
+            //->databaseNotificationsPolling('30s')
             ->spa();
     }
 }

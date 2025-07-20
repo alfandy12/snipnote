@@ -16,6 +16,8 @@ use Filament\Tables\Actions\Action;
 use Filament\Support\Enums\FontWeight;
 use Filament\Forms\Components\Fieldset;
 use Illuminate\Database\Eloquent\Model;
+use Filament\Notifications\Notification;
+use App\Jobs\NotificationFromSharingNote;
 use Filament\Forms\Components\RichEditor;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
@@ -24,6 +26,7 @@ use App\Filament\Resources\NoteResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Columns\Layout\Grid as GridTable;
 use App\Filament\Resources\NoteResource\RelationManagers;
+use Filament\Notifications\Actions\Action as ActionNotification;
 
 class NoteResource extends Resource
 {
@@ -118,18 +121,51 @@ class NoteResource extends Resource
                             $record->save();
                         }
 
-                        //check is owner
-                        $isOwner = $record->users
-                            ->firstWhere(fn($user) => $user->pivot->is_owner);
+                        if (isset($data['user_id'])) {
+                            // array sync
+                            $usersToSync = [];
 
-                        $isOwner = $isOwner ? [$isOwner->id, 'is_owner' => false] : [];
+                            // another ser
+                            $usersToSync = collect($data['user_id'])
+                                ->mapWithKeys(fn($id) => [$id => ['is_owner' => false]])
+                                ->all();
 
+                            // owner
+                            $ownerId = $record->users->firstWhere('pivot.is_owner', true)?->id;
 
-                        $newUsers = collect($data['user_id'])->mapWithKeys(fn($id) => [$id, 'is_owner' => false]);
+                            // sync owner
+                            if ($ownerId) {
+                                $usersToSync[$ownerId] = ['is_owner' => true];
+                            }
 
-                        dd($isOwner, $newUsers, $data);
-                        // sync
-                        $record->users()->sync($syncData);
+                            //sync note
+                            $record->users()->sync($usersToSync);
+
+                            //notification to my self
+                            if (!empty($data['user_id'])) {
+                                //my username
+                                $username =  auth()->user()->username;
+
+                                // Notifikasi builder
+                                $notification = Notification::make()
+                                    ->title("{$username} telah membagikan sebuah catatan kepada kamu.")
+                                    ->actions([
+                                        ActionNotification::make('Lihat')
+                                            ->url(NoteResource::getUrl('view', ['record' => $record]))
+                                            ->button()
+                                            ->color('primary'),
+                                    ])
+                                    ->toDatabase();
+
+                                // Kirim job ke queue
+                                NotificationFromSharingNote::dispatch($data['user_id'], $notification);
+                            }
+
+                            Notification::make()
+                                    ->title('You have successfully updated sharing on this note.')
+                                    ->success()
+                                    ->send();
+                        }
                     })
                     ->form([
                         Forms\Components\Toggle::make('is_public')
@@ -145,10 +181,27 @@ class NoteResource extends Resource
                             })
                             ->required(),
                         Forms\Components\Select::make('user_id')
-                            //can give access to multiple users
                             ->multiple()
-                            ->label('username')
-                            //search from username
+                            ->label('Bagikan dengan Pengguna')
+                            ->helperText('Hapus atau tambah pengguna untuk berbagi catatan ini.')
+                            ->live(onBlur: true)
+                            ->hidden(fn(callable $get) => $get('is_public'))
+
+                            // 1. Mengatur NILAI DEFAULT yang terpilih (berupa array ID)
+                            ->default(function (Note $record): array {
+                                return $record->users()
+                                    ->wherePivot('is_owner', false)
+                                    ->pluck('users.id')
+                                    ->toArray();
+                            })
+
+                            // 2. Mengambil LABEL untuk nilai yang SUDAH TERPILIH (SANGAT PENTING!)
+                            // Fungsi ini akan mengubah array ID [3, 6] menjadi [3 => 'nama_user_3', 6 => 'nama_user_6']
+                            ->getOptionLabelsUsing(function (array $values): array {
+                                return User::whereIn('id', $values)->pluck('username', 'id')->toArray();
+                            })
+
+                            // 3. Mengatur fungsi PENCARIAN
                             ->getSearchResultsUsing(function (string $search): array {
                                 return User::where('username', 'like', "%{$search}%")
                                     ->where('id', '!=', auth()->id())
@@ -156,17 +209,9 @@ class NoteResource extends Resource
                                     ->pluck('username', 'id')
                                     ->toArray();
                             })
-                            ->default(function (Note $record) {
-                                // default selected for remove sharing to spesific user
-                                return $record->users
-                                    ->filter(fn($user) => !$user->pivot->is_owner)
-                                    ->pluck('username' , 'id')
-                                    ->toArray();
-                            })
-                            ->getOptionLabelUsing(fn($value) => User::find($value)?->username)
-                            ->searchable()
-                            ->hidden(fn($record, $get) => $get('is_public')),
-                        // ...
+                            ->searchable(),
+
+
                     ]),
             ])
             ->recordUrl(
@@ -200,6 +245,7 @@ class NoteResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with('users')
             ->where('is_public', true)
             ->orWhereHas('users', function ($query) {
                 $query->where('users.id', auth()->id());
