@@ -13,6 +13,7 @@ use Filament\Support\Colors\Color;
 use Illuminate\Support\HtmlString;
 use Filament\Forms\Components\Grid;
 use Filament\Tables\Actions\Action;
+use Filament\Forms\Components\Section;
 use Filament\Support\Enums\FontWeight;
 use Filament\Forms\Components\Fieldset;
 use Illuminate\Database\Eloquent\Model;
@@ -22,10 +23,12 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\NoteResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Columns\Layout\Grid as GridTable;
 use App\Filament\Resources\NoteResource\RelationManagers;
+use Filament\Forms\Components\Actions\Action as ActionForm;
 use Filament\Notifications\Actions\Action as ActionNotification;
 
 class NoteResource extends Resource
@@ -50,6 +53,18 @@ class NoteResource extends Resource
                     ]),
                 Forms\Components\Toggle::make('is_pinned')
                     ->required(),
+                Section::make('comments')
+                    ->schema([
+                        Forms\Components\Textarea::make('comment'),
+                    ])
+                    ->footerActions([
+                        ActionForm::make('submit')
+                            ->action(function () {
+                                // ...
+                            }),
+                    ])
+                    ->collapsed()
+                        ->visible(fn ($livewire) => !($livewire instanceof CreateRecord))
             ]);
     }
 
@@ -68,6 +83,11 @@ class NoteResource extends Resource
                                 ->searchable()
                                 ->formatStateUsing(fn(string $state): string => strip_tags($state))
                                 ->limit(100),
+                            Tables\Columns\TextColumn::make('comments_count')
+                                // ->visible(fn(Model $record)  => dd($record))
+                                ->formatStateUsing(fn(string $state): string => "{$state} comments")
+                                ->badge()
+                                ->color('success'),
 
                         ])
                         ->columns(1),
@@ -114,7 +134,7 @@ class NoteResource extends Resource
                     ->color(Color::Cyan)
                     ->icon('heroicon-m-share')
                     ->action(function (array $data, Note $record): void {
-
+                        dd($record);
                         //for make low query, update if is_public changed
                         if ($record->is_public !== $data['is_public']) {
                             $record->is_public = $data['is_public'];
@@ -162,9 +182,9 @@ class NoteResource extends Resource
                             }
 
                             Notification::make()
-                                    ->title('You have successfully updated sharing on this note.')
-                                    ->success()
-                                    ->send();
+                                ->title('You have successfully updated sharing on this note.')
+                                ->success()
+                                ->send();
                         }
                     })
                     ->form([
@@ -245,7 +265,8 @@ class NoteResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with('users')
+            ->with('users', 'comments')
+            ->withCount('comments')
             ->where('is_public', true)
             ->orWhereHas('users', function ($query) {
                 $query->where('users.id', auth()->id());
