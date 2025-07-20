@@ -19,6 +19,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
     ];
@@ -44,5 +45,23 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function notes()
+    {
+        return $this->belongsToMany(Note::class, 'notes_access')
+            ->withPivot('is_owner')
+            ->withTimestamps();
+    }
+
+    public function ownedNotes()
+    {
+        return $this->belongsToMany(Note::class, 'notes_access')
+            ->wherePivot('is_owner', true);
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(NoteComment::class);
     }
 }
