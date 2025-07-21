@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('notes', function (Blueprint $table) {
             $table->id();
             $table->boolean('is_public')->default(false);
-            $table->boolean('is_pinned')->default(false);
             $table->string('title');
             $table->text('content');
             $table->timestamps();

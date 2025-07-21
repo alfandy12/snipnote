@@ -24,4 +24,11 @@ class NoteComment extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function getUserCommentNameAttribute()
+    {
+        $name = ucwords($this->user->name);
+        $username = $this->user->username;
+        return "{$name}@{$username}";
+    }
 }

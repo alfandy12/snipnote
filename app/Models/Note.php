@@ -12,7 +12,6 @@ class Note extends Model
     protected $fillable = [
         'title',
         'content',
-        'is_pinned',
         'is_public',
     ];
 
@@ -28,4 +27,21 @@ class Note extends Model
         return $this->hasMany(NoteComment::class);
     }
 
+    public function owner()
+    {
+        return $this->hasOneThrough(
+            User::class,
+            NoteAccess::class,
+            'note_id',
+            'id',
+            'id',
+            'user_id'
+        )->where('note_accesses.is_owner', true);
+    }
+    public function getUsernameOwnerAttribute()
+    {
+        $name = ucwords($this->owner->name);
+        $username = $this->owner->username;
+        return "{$name}@{$username}";
+    }
 }

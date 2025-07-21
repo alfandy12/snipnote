@@ -8,12 +8,14 @@ use App\Models\User;
 use Filament\Tables;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Support\Colors\Color;
 use Illuminate\Support\HtmlString;
 use Filament\Forms\Components\Grid;
 use Filament\Tables\Actions\Action;
 use Filament\Forms\Components\Section;
+use Filament\Resources\Components\Tab;
 use Filament\Support\Enums\FontWeight;
 use Filament\Forms\Components\Fieldset;
 use Illuminate\Database\Eloquent\Model;
@@ -23,13 +25,17 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\Placeholder;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Infolists\Components\TextEntry;
 use App\Filament\Resources\NoteResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Columns\Layout\Grid as GridTable;
 use App\Filament\Resources\NoteResource\RelationManagers;
 use Filament\Forms\Components\Actions\Action as ActionForm;
+use Filament\Infolists\Components\Section as SectionInfolist;
 use Filament\Notifications\Actions\Action as ActionNotification;
+use App\Filament\Resources\CommentNoteRelationManagerResource\RelationManagers\CommentsRelationManager;
 
 class NoteResource extends Resource
 {
@@ -41,6 +47,16 @@ class NoteResource extends Resource
     {
         return $form
             ->schema([
+                Section::make()
+                    ->columns(3)
+                    ->schema([
+                        Placeholder::make('owner')
+                            ->content(fn(Note $record): string => $record->usernameOwner),
+                        Placeholder::make('created')
+                            ->content(fn(Note $record): string => $record->created_at->since()),
+                        Placeholder::make('updated')
+                            ->content(fn(Note $record): string => $record->updated_at->since())
+                    ])->visibleOn('view'),
                 Forms\Components\TextInput::make('title')
                     ->required()
                     ->maxLength(255)
@@ -51,20 +67,6 @@ class NoteResource extends Resource
                     ->disableToolbarButtons([
                         'attachFiles',
                     ]),
-                Forms\Components\Toggle::make('is_pinned')
-                    ->required(),
-                Section::make('comments')
-                    ->schema([
-                        Forms\Components\Textarea::make('comment'),
-                    ])
-                    ->footerActions([
-                        ActionForm::make('submit')
-                            ->action(function () {
-                                // ...
-                            }),
-                    ])
-                    ->collapsed()
-                        ->visible(fn ($livewire) => !($livewire instanceof CreateRecord))
             ]);
     }
 
@@ -84,8 +86,20 @@ class NoteResource extends Resource
                                 ->formatStateUsing(fn(string $state): string => strip_tags($state))
                                 ->limit(100),
                             Tables\Columns\TextColumn::make('comments_count')
-                                // ->visible(fn(Model $record)  => dd($record))
-                                ->formatStateUsing(fn(string $state): string => "{$state} comments")
+                                ->visible(function ($record) {
+                                    if (is_null($record)) {
+                                        return false;
+                                    }
+                                    return $record->comments_count > 0 ? true : false;
+                                })
+                                ->formatStateUsing(fn(string $state): string => __('notes.comments.has_comment', ['count' => $state]))
+                                ->badge()
+                                ->color('primary'),
+                            Tables\Columns\TextColumn::make('is_public')
+                                ->visible(function ($record) {
+                                    return $record ? $record->is_public : false;
+                                })
+                                ->formatStateUsing(fn(string $state): string => __('notes.tabs.public'))
                                 ->badge()
                                 ->color('success'),
 
@@ -93,7 +107,6 @@ class NoteResource extends Resource
                         ->columns(1),
                 ]),
             ])
-            //->modifyQueryUsing(fn(Builder $query) => $query->when($this->activeTab != 'all', fn($q) => $q->whereHas('category', fn(Builder $query) => $query->where('slug', $this->activeTab))))
             ->contentGrid([
                 'default' => 2,
                 'md' => 3,
@@ -101,40 +114,23 @@ class NoteResource extends Resource
                 'xl' => 5,
             ])
 
-            // Tables\Columns\IconColumn::make('is_public')
-            //     ->boolean(),
-            // Tables\Columns\IconColumn::make('is_pinned')
-            //     ->boolean(),
-            // Tables\Columns\TextColumn::make('title')
-            //     ->searchable(),
-            // Tables\Columns\TextColumn::make('created_at')
-            //     ->dateTime()
-            //     ->sortable()
-            //     ->toggleable(isToggledHiddenByDefault: true),
-            // Tables\Columns\TextColumn::make('updated_at')
-            //     ->dateTime()
-            //     ->sortable()
-            //     ->toggleable(isToggledHiddenByDefault: true),
-
             ->filters([
                 //
             ])
             ->actions([
-                // Tables\Actions\ViewAction::make()
-                //     ->iconButton(),
                 Tables\Actions\EditAction::make()
                     ->iconButton(),
                 Tables\Actions\DeleteAction::make()
                     ->iconButton()
                     ->requiresConfirmation(),
-                Action::make('sharing')
+
+                Action::make(__('notes.action.sharing'))
                     //cant sharing spesific user if not owner
                     ->hidden(fn(Model $record) => ! $record->users->contains(fn($user) => $user->id === auth()->id() && $user->pivot->is_owner))
                     ->iconButton()
                     ->color(Color::Cyan)
                     ->icon('heroicon-m-share')
                     ->action(function (array $data, Note $record): void {
-                        dd($record);
                         //for make low query, update if is_public changed
                         if ($record->is_public !== $data['is_public']) {
                             $record->is_public = $data['is_public'];
@@ -168,12 +164,12 @@ class NoteResource extends Resource
 
                                 // Notifikasi builder
                                 $notification = Notification::make()
-                                    ->title("{$username} telah membagikan sebuah catatan kepada kamu.")
+                                    ->title(__('notes.action.sharing_notification.another_user', ['username' => $username]))
                                     ->actions([
-                                        ActionNotification::make('Lihat')
+                                        ActionNotification::make(__('notes.column.view'))
                                             ->url(NoteResource::getUrl('view', ['record' => $record]))
                                             ->button()
-                                            ->color('primary'),
+                                            ->color('primary')->markAsRead(),
                                     ])
                                     ->toDatabase();
 
@@ -182,7 +178,7 @@ class NoteResource extends Resource
                             }
 
                             Notification::make()
-                                ->title('You have successfully updated sharing on this note.')
+                                ->title(__('notes.action.sharing_notification.my_notif_title'))
                                 ->success()
                                 ->send();
                         }
@@ -202,26 +198,20 @@ class NoteResource extends Resource
                             ->required(),
                         Forms\Components\Select::make('user_id')
                             ->multiple()
-                            ->label('Bagikan dengan Pengguna')
-                            ->helperText('Hapus atau tambah pengguna untuk berbagi catatan ini.')
+                            ->label(__('notes.action.modal.sharing.title'))
+                            ->helperText(__('notes.action.modal.sharing.description'))
                             ->live(onBlur: true)
                             ->hidden(fn(callable $get) => $get('is_public'))
-
-                            // 1. Mengatur NILAI DEFAULT yang terpilih (berupa array ID)
                             ->default(function (Note $record): array {
                                 return $record->users()
                                     ->wherePivot('is_owner', false)
                                     ->pluck('users.id')
                                     ->toArray();
                             })
-
-                            // 2. Mengambil LABEL untuk nilai yang SUDAH TERPILIH (SANGAT PENTING!)
-                            // Fungsi ini akan mengubah array ID [3, 6] menjadi [3 => 'nama_user_3', 6 => 'nama_user_6']
                             ->getOptionLabelsUsing(function (array $values): array {
                                 return User::whereIn('id', $values)->pluck('username', 'id')->toArray();
                             })
 
-                            // 3. Mengatur fungsi PENCARIAN
                             ->getSearchResultsUsing(function (string $search): array {
                                 return User::where('username', 'like', "%{$search}%")
                                     ->where('id', '!=', auth()->id())
@@ -230,13 +220,14 @@ class NoteResource extends Resource
                                     ->toArray();
                             })
                             ->searchable(),
-
-
                     ]),
             ])
-            ->recordUrl(
-                fn($record) => static::getUrl('view', ['record' => $record])
-            )
+            ->recordUrl(function ($record) {
+                //if owner, click to edit
+                $owner = $record->users->firstWhere('pivot.is_owner', true)?->id == auth()->id();
+                $url = static::getUrl($owner ? 'edit' : 'view', ['record' => $record]);
+                return $url;
+            })
             ->bulkActions([
                 // Tables\Actions\BulkActionGroup::make([
                 //     Tables\Actions\DeleteBulkAction::make(),
@@ -248,6 +239,7 @@ class NoteResource extends Resource
     {
         return [
             //
+            CommentsRelationManager::class
         ];
     }
 
@@ -265,11 +257,13 @@ class NoteResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with('users', 'comments')
+            ->with('users', 'comments.user')
             ->withCount('comments')
-            ->where('is_public', true)
-            ->orWhereHas('users', function ($query) {
-                $query->where('users.id', auth()->id());
-            });
+            ->where(function ($query) {
+                $query->where('is_public', true)
+                    ->orWhereHas('users', function ($q) {
+                        $q->where('users.id', auth()->id());
+                    });
+            })->orderByDesc('updated_at');
     }
 }

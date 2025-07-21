@@ -39,7 +39,7 @@ class AppPanelProvider extends PanelProvider
                 // This plugin is used to edit user profile
                 FilamentEditProfilePlugin::make()
                     ->slug('profile')
-                //    ->setTitle('My Profile')
+                    //    ->setTitle('My Profile')
                     ->setNavigationLabel('My Profile')
                     ->setNavigationGroup('Group Profile')
                     ->setIcon('heroicon-o-user')
@@ -89,10 +89,18 @@ class AppPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->colors([
+                'danger' => Color::Rose,
+                'gray' => Color::Gray,
+                'info' => Color::Blue,
+                'primary' => Color::Indigo,
+                'success' => Color::Emerald,
+                'warning' => Color::Orange,
+            ])
             //  ->databaseTransaction()
             ->databaseNotifications()
             // not recomended, cuz polling query 30s
-            //->databaseNotificationsPolling('30s')
+            // ->databaseNotificationsPolling('30s')
             ->spa();
     }
 }
