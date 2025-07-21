@@ -1,61 +1,92 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Snipnote - Platform Catatan Kolaboratif
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Snipnote adalah sebuah aplikasi pencatat berbasis web yang dibangun menggunakan **Laravel**. Aplikasi ini dirancang untuk tidak hanya menjadi tempat mencatat pribadi, tetapi juga sebagai platform untuk berkolaborasi dan berbagi ide dengan pengguna lain secara aman dan terkontrol.
 
-## About Laravel
+##  flowchart Alur Aplikasi
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Berikut adalah alur kerja umum dari aplikasi Snipnote:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1.  **Akses Pengguna:** Pengguna dapat melakukan **Login** ke akun yang sudah ada atau melakukan **Registrasi** untuk membuat akun baru.
+2.  **Dashboard:** Setelah berhasil login, pengguna akan diarahkan ke halaman *dashboard*. Halaman ini menampilkan semua catatan yang relevan dengan pengguna.
+3.  **Manajemen Catatan:** Pengguna dapat **membuat catatan baru**, **membaca/mengedit** catatan yang ada, dan **menghapus** catatan.
+4.  **Sistem Berbagi (Sharing):** Saat membuat atau mengedit catatan, pengguna dapat memilih untuk:
+    * Menjadikannya **pribadi** (hanya bisa diakses oleh pemilik).
+    * **Berbagi ke pengguna tertentu** dengan memilih dari daftar pengguna.
+    * Menjadikannya **publik** agar bisa diakses oleh siapa saja.
+5.  **Kontrol Akses:** Hak akses untuk setiap catatan diatur secara ketat menggunakan **Policy & Gate** dari Laravel. Ini memastikan hanya pengguna yang berhak yang dapat melihat atau mengedit catatan tertentu.
+6.  **Kolaborasi dengan Komentar:** Pengguna yang memiliki akses ke sebuah catatan (baik dibagikan secara spesifik maupun publik) dapat menambahkan **komentar**. Pemilik catatan memiliki hak penuh untuk menghapus komentar apa pun di catatannya.
+7.  **Notifikasi:** Pengguna akan menerima notifikasi ketika ada pengguna lain yang membagikan catatan kepadanya.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🚀 Fitur Unggulan
 
-## Learning Laravel
+* **Manajemen Catatan (CRUD):** Fungsionalitas penuh untuk membuat, membaca, memperbarui, dan menghapus catatan.
+* **Tabulasi Catatan:** Antarmuka yang terorganisir dengan baik menggunakan tab:
+    * **All:** Menampilkan semua catatan.
+    * **My Note:** Hanya menampilkan catatan yang dibuat oleh pengguna.
+    * **Shared to Me:** Catatan yang dibagikan oleh pengguna lain kepada Anda.
+    * **Public:** Catatan yang dapat diakses oleh semua pengguna.
+* **Pencarian Lanjutan:** Fitur pencarian untuk menemukan catatan dengan cepat.
+* **Sistem Berbagi Fleksibel:** Bagikan catatan ke satu atau banyak pengguna sekaligus, atau jadikan publik.
+* **Manajemen Akses:** Pemilik catatan dapat dengan mudah memberikan dan mencabut akses dari pengguna lain.
+* **Notifikasi Real-time:** Dapatkan pemberitahuan instan ketika sebuah catatan dibagikan kepada Anda.
+* **Sistem Komentar:** Berdiskusi dan berkolaborasi langsung di halaman catatan. Pemilik catatan memiliki hak moderasi penuh.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 🛠️ Teknologi yang Digunakan
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+* [**Laravel 12**](https://laravel.com/): Framework utama untuk membangun sisi server dan antarmuka pengguna aplikasi.
+* [**Filament 3**](https://filamentphp.com/): Digunakan sebagai Admin Panel yang canggih, dengan plugin tambahan:
+    * **`filament/notifications`**: Untuk sistem notifikasi.
+    * **`bezhansalleh/filament-language-switch`**: Untuk fitur ganti bahasa pada panel admin.
+    * **`joaopaulolndev/filament-edit-profile`**: Memberikan fungsionalitas edit profil untuk pengguna.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## ⚙️ Instalasi & Konfigurasi
 
-## Laravel Sponsors
+Pastikan Anda sudah memiliki environment pengembangan lokal yang sesuai (PHP, Composer, Node.js, npm).
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+1.  **Clone Repositori**
+    ```bash
+    git clone [https://github.com/alfandy12/snipnote.git](https://github.com/alfandy12/snipnote.git)
+    cd snipnote
+    ```
 
-### Premium Partners
+2.  **Instalasi Dependensi**
+    Instal semua dependensi PHP menggunakan Composer.
+    ```bash
+    composer install
+    ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+3.  **Konfigurasi Environment**
+    Salin file `.env.example` menjadi `.env` dan sesuaikan konfigurasinya, terutama untuk koneksi database.
+    ```bash
+    cp .env.example .env
+    ```
+    Setelah itu, generate kunci aplikasi.
+    ```bash
+    php artisan key:generate
+    ```
 
-## Contributing
+4.  **Migrasi dan Seeding Database**
+    Jalankan migrasi untuk membuat semua tabel yang dibutuhkan di database Anda. Tambahkan opsi `--seed` untuk menjalankan *database seeder* yang akan mengisi database dengan data dummy (contoh).
+    ```bash
+    php artisan migrate --seed
+    ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## ▶️ Menjalankan Proyek
 
-## Code of Conduct
+Untuk menjalankan aplikasi, Anda hanya perlu menjalankan server pengembangan Laravel.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1.  **Jalankan Server Laravel**
+    ```bash
+    php artisan serve
+    ```
 
-## Security Vulnerabilities
+2.  **Buka Aplikasi**
+    Setelah server berjalan, buka aplikasi di peramban sesuai alamat yang diberikan (biasanya `http://127.0.0.1:8000`).
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 🤝 Kontribusi
 
-## License
+Kontribusi, isu, dan permintaan fitur sangat kami hargai! Jangan ragu untuk membuka *issue* atau *pull request*.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 📄 Lisensi
+
+Proyek ini dilisensikan di bawah [Lisensi MIT](https://choosealicense.com/licenses/mit/).

@@ -72,10 +72,11 @@ class CommentsRelationManager extends RelationManager
                 // Tables\Actions\BulkActionGroup::make([
                 //     Tables\Actions\DeleteBulkAction::make(),
                 // ]),
-            ]);
+            ])->modifyQueryUsing(fn (Builder $query) => $query->orderByDesc('created_at'));
     }
     public function isReadOnly(): bool
     {
         return false;
     }
+
 }
