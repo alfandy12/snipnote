@@ -23,17 +23,25 @@ class ListNotes extends ListRecords
     {
         return [
             'all' => Tab::make(__('notes.tabs.all_notes')),
+            'myNote' => Tab::make(__('notes.tabs.my_note'))
+                ->modifyQueryUsing(fn(Builder $query) =>
+                $query->where('is_public', false)
+                    ->whereHas('users', function ($q) {
+                        $q->where('user_id', auth()->id())
+                            ->where('is_owner', true);
+                    })),
             'privateShare' => Tab::make(__('notes.tabs.sharing_to_me'))
                 ->modifyQueryUsing(
                     fn(Builder $query) =>
                     $query->where('is_public', false)
-                    ->whereHas('users', function ($q) {
-                        $q->where('user_id', auth()->id())
-                            ->where('is_owner', false);
-                    })
+                        ->whereHas('users', function ($q) {
+                            $q->where('user_id', auth()->id())
+                                ->where('is_owner', false);
+                        })
                 ),
             'public' => Tab::make(__('notes.tabs.public'))
                 ->modifyQueryUsing(fn(Builder $query) => $query->where('is_public', true)),
+
         ];
     }
 }

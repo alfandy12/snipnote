@@ -3,6 +3,7 @@
 return [
     'tabs' => [
         'all_notes' => 'All Notes',
+        'my_note' => 'My Note',
         'sharing_to_me' => 'Sharing to me',
         'public' => 'Public'
     ],
